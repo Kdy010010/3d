@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Level 2</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000;
+        }
+        canvas {
+            background-color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>const canvas = document.getElementById('gameCanvas');
+const context = canvas.getContext('2d');
+
+const TILE_SIZE = 64;
+const FOV = Math.PI / 3;
+const HALF_FOV = FOV / 2;
+const NUM_RAYS = 300;
+const MAX_DEPTH = 800;
+const WALL_HEIGHT = canvas.height;
+
+let maze = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+    [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+    [1, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 0, 1, 1, 1, 1, 0, 1],
+    [1, 0, 0, 0, 1, 0, 0, 1, 0, 1],
+    [1, 1, 1, 0, 1, 0, 0, 2, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+];
+
+let player = {
+    x: 100,
+    y: 100,
+    angle: 0,
+    speed: 2
+};
+
+function castRays() {
+    for (let i = 0; i < NUM_RAYS; i++) {
+        const rayAngle = (player.angle - HALF_FOV) + (i / NUM_RAYS) * FOV;
+        for (let depth = 0; depth < MAX_DEPTH; depth += 1) {
+            const targetX = player.x + Math.cos(rayAngle) * depth;
+            const targetY = player.y + Math.sin(rayAngle) * depth;
+            
+            const tileX = Math.floor(targetX / TILE_SIZE);
+            const tileY = Math.floor(targetY / TILE_SIZE);
+            
+            if (maze[tileY] && maze[tileY][tileX] === 1) {
+                const distance = depth * Math.cos(rayAngle - player.angle);
+                const wallHeight = (WALL_HEIGHT / (distance * 0.1));
+                const color = 255 - Math.min(255, distance * 0.1);
+                
+                context.fillStyle = `rgb(${color}, ${color}, ${color})`;
+                context.fillRect(i * (canvas.width / NUM_RAYS), (canvas.height / 2) - wallHeight / 2, (canvas.width / NUM_RAYS), wallHeight);
+                break;
+            }
+        }
+    }
+}
+
+function draw() {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    castRays();
+    drawGoal();
+    checkGoal();
+}
+
+function drawGoal() {
+    const goalTile = getGoalTile();
+    const goalX = goalTile.x * TILE_SIZE;
+    const goalY = goalTile.y * TILE_SIZE;
+    context.fillStyle = 'green';
+    context.fillRect(goalX, goalY, TILE_SIZE, TILE_SIZE);
+}
+
+function getGoalTile() {
+    for (let y = 0; y < maze.length; y++) {
+        for (let x = 0; x < maze[y].length; x++) {
+            if (maze[y][x] === 2) {
+                return { x: x, y: y };
+            }
+        }
+    }
+    return null;
+}
+
+function checkGoal() {
+    const goalTile = getGoalTile();
+    if (Math.floor(player.x / TILE_SIZE) === goalTile.x && Math.floor(player.y / TILE_SIZE) === goalTile.y) {
+        window.location.href = 'index.html'; // or you can move to another level or end screen
+    }
+}
+
+function movePlayer() {
+    window.addEventListener('keydown', (event) => {
+        switch (event.key) {
+            case 'ArrowUp':
+                player.x += Math.cos(player.angle) * player.speed;
+                player.y += Math.sin(player.angle) * player.speed;
+                break;
+            case 'ArrowDown':
+                player.x -= Math.cos(player.angle) * player.speed;
+                player.y -= Math.sin(player.angle) * player.speed;
+                break;
+            case 'ArrowLeft':
+                player.angle -= 0.1;
+                break;
+            case 'ArrowRight':
+                player.angle += 0.1;
+                break;
+        }
+        draw();
+    });
+}
+
+movePlayer();
+draw();
+</script>
+</body>
+</html>
